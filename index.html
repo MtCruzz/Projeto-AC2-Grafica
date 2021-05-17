@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <title>Babylon.js sample code</title>
+
+    <!-- Babylon.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+    <script src="https://preview.babylonjs.com/ammo.js"></script>
+    <script src="https://preview.babylonjs.com/cannon.js"></script>
+    <script src="https://preview.babylonjs.com/Oimo.js"></script>
+    <script src="https://preview.babylonjs.com/earcut.min.js"></script>
+    <script src="https://preview.babylonjs.com/babylon.js"></script>
+    <script src="https://preview.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+    <script src="https://preview.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+    <script src="https://preview.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+    <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+    <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+    <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+    <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+    <style>
+        html,
+        body {
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #renderCanvas {
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <script>
+        var canvas = document.getElementById("renderCanvas");
+
+        var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var qtd;
+        var createDefaultEngine = function () { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, disableWebGL2Support: false }); };
+        var createScene = function () {
+
+            const scene = new BABYLON.Scene(engine);
+            //scene.debugLayer.show();
+            //Camera
+            var camera1 = camera(scene);
+
+            //Lights
+            lights();
+
+            //Create Skybox
+            skybox();
+
+            //Create map
+            terrain();
+
+            //GUI 
+            gui();
+
+            //Keyboard Events
+            keyboardEvents(scene);
+
+            // Load hero character
+            character(scene);
+
+            // Barrel into scene
+            logic(scene);
+
+            imports(scene);
+
+            return scene;
+        };
+
+        function mesa(x, z) {
+            const sup = BABYLON.MeshBuilder.CreateBox("box", { height: 0.1, width: 1, depth: 1 });
+            sup.position.x = x;
+            sup.position.y = 1;
+            sup.position.z = z;
+
+            const base = BABYLON.MeshBuilder.CreateBox("base", { height: 1, width: 0.5, depth: 0.5 });
+            base.position.x = sup.position.x;
+            base.position.y = 0.5;
+            base.position.z = z;
+
+            var mat1 = new BABYLON.StandardMaterial("mat1", scene);
+            mat1.diffuseTexture = new BABYLON.Texture("https://doc.babylonjs.com/_next/image?url=%2Fimg%2Fresources%2Ftextures_thumbs%2Falbedo.png.jpg&w=1920&q=75", scene);
+            sup.material = mat1;
+            base.material = mat1;
+
+            caixa(x, z);
+        }
+
+        function caixa(x, z) {
+            const box = BABYLON.MeshBuilder.CreateBox("box", { height: 1, width: 1, depth: 1 });
+            box.position = new BABYLON.Vector3(x, 1.5, z);
+
+            var matBB = new BABYLON.StandardMaterial("matBB", scene);
+            matBB.emissiveColor = new BABYLON.Color3(1, 1, 1);
+            matBB.wireframe = true;
+
+            box.material = matBB;
+        }
+
+        function imports(scene) {
+            BABYLON.SceneLoader.ImportMeshAsync("", "https://models.babylonjs.com/vintageDeskFan/", "vintageFan_animated.gltf", scene).then((result) => {
+                var ventilador = result.meshes[0];
+                ventilador.scaling.scaleInPlace(0.017);
+                ventilador.position = new BABYLON.Vector3(4, 1, 6)
+                mesa(ventilador.position.x, ventilador.position.z);
+            })
+
+            BABYLON.SceneLoader.ImportMesh("", "https://models.babylonjs.com/", "seagulf.glb", scene, function (result) {
+                var pato = result[0];
+                pato.scaling.scaleInPlace(0.0008);
+                pato.position = new BABYLON.Vector3(4, 1.47, 2);
+                mesa(pato.position.x, pato.position.z + 0.5);
+            });
+
+            BABYLON.SceneLoader.ImportMesh("", "https://models.babylonjs.com/", "Demos/shaderBall/BabylonShaderBall_Simple.glb", scene, function (result) {
+                var a = result[0];
+                a.scaling.scaleInPlace(0.06);
+                a.position = new BABYLON.Vector3(4, 1.47, -2);
+                mesa(a.position.x, a.position.z);
+            });
+
+            BABYLON.SceneLoader.ImportMesh("", "https://models.babylonjs.com/", "alien.glb", scene, function (result) {
+                var b = result[0];
+                b.position = new BABYLON.Vector3(4, 1.6, -6);
+                mesa(b.position.x, b.position.z);
+            });
+
+            BABYLON.SceneLoader.ImportMesh("", "https://models.babylonjs.com/", "emoji_heart.glb", scene, function (result) {
+                var c = result[0];
+                c.position = new BABYLON.Vector3(-4, 1, -6);
+                c.scaling.scaleInPlace(10);
+                mesa(c.position.x, c.position.z);
+            });
+
+            BABYLON.SceneLoader.ImportMesh("", "https://models.babylonjs.com/", "toast_acrobatics.glb", scene, function (result) {
+                var d = result[0];
+                d.position = new BABYLON.Vector3(-3.5, 1.05, -2);
+                d.scaling.scaleInPlace(2);
+                mesa(d.position.x - 0.5, d.position.z);
+            });
+
+            BABYLON.SceneLoader.ImportMesh("", "https://models.babylonjs.com/", "solar_system.glb", scene, function (result) {
+                var planeta = result[0];
+                planeta.position = new BABYLON.Vector3(-4, 1.5, 2);
+                planeta.scaling.scaleInPlace(0.08);
+                mesa(planeta.position.x, planeta.position.z);
+            });
+
+            BABYLON.SceneLoader.ImportMesh("", "https://models.babylonjs.com/", "Skull/skull.babylon", scene, function (result) {
+                var e = result[0];
+                e.position = new BABYLON.Vector3(-4, 1.5, 6);
+                e.rotation.y = Math.PI;
+                e.scaling.scaleInPlace(0.008);
+                mesa(e.position.x, e.position.z);
+            });
+
+        }
+
+        function particula(x, z) {
+
+            // Create a particle system
+            particleSystem = new BABYLON.ParticleSystem("particles", 5000, scene);
+
+            //Texture of each particle
+            particleSystem.particleTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/sparkle2.jpg", scene);
+
+            // Where the particles come from
+            particleSystem.emitter = new BABYLON.Vector3(x, 1, z); // the starting object, the emitter
+            particleSystem.minEmitBox = new BABYLON.Vector3(-0.5, -0.5, -0); // Starting all from
+            particleSystem.maxEmitBox = new BABYLON.Vector3(0.5, 0.5, 0); // To...
+
+            // Colors of all particles
+            particleSystem.color1 = new BABYLON.Color4(0.95, 0.87, 0.21);
+            particleSystem.color2 = new BABYLON.Color4(1, 0.98, 0);
+            particleSystem.colorDead = new BABYLON.Color4(0, 0, 0.2, 0.0);
+
+            // Size of each particle (random between...
+            particleSystem.minSize = 0.05;
+            particleSystem.maxSize = 0.1;
+
+            // Life time of each particle (random between...
+            particleSystem.minLifeTime = 0.2;
+            particleSystem.maxLifeTime = 0.5;
+
+            // Emission rate
+            particleSystem.emitRate = 1500;
+
+            // Blend mode : BLENDMODE_ONEONE, or BLENDMODE_STANDARD
+            particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
+
+            // Set the gravity of all particles
+            //particleSystem.gravity = new BABYLON.Vector3(0, -9.81, 0);
+
+            // Direction of each particle after it has been emitted
+            particleSystem.direction1 = new BABYLON.Vector3(0, 2.5, 0);
+            // particleSystem.direction2 = new BABYLON.Vector3(2, 8, -2);
+
+            // Angular speed, in radians
+            //particleSystem.minAngularSpeed = 0;
+            //particleSystem.maxAngularSpeed = Math.PI;
+
+            // Speed
+            particleSystem.minEmitPower = 0.1;
+            particleSystem.maxEmitPower = 0.3;
+            particleSystem.updateSpeed = 0.025;
+
+            // Start the particle system
+            particleSystem.start();
+            particleSystem.targetStopDuration = 1;
+        }
+
+        function logic(scene) {
+            BABYLON.SceneLoader.ImportMeshAsync("", "https://models.babylonjs.com/", "ExplodingBarrel.glb", scene).then((result) => {
+                var barril = result.meshes[0];
+
+                barril.scaling.scaleInPlace(0.02);
+
+                var hitBoxPlayer = scene.getMeshByName("HVGirl_primitive6");
+                var hitBoxBarril = scene.getMeshByName("Barrel_low");
+
+                var matBB = new BABYLON.StandardMaterial("matBB", scene);
+                matBB.emissiveColor = new BABYLON.Color3(0.17, 0.78, 0.22);
+                matBB.wireframe = true;
+
+                var coinSound = new BABYLON.Sound("coin", "sounds/coin.wav", scene);
+                var explosionSound = new BABYLON.Sound("explosion", "sounds/explosion.wav", scene);
+
+                var hit = 0;
+
+                var contMoeda = 0;
+
+                coins(0);
+
+                var coin = BABYLON.MeshBuilder.CreateCylinder("cylinder", { height: 0.1, radius: 1.1 });
+                coin.position = new BABYLON.Vector3(5, 1, -4);
+                coin.rotation.x = Math.PI / 2;
+                coin.material = matBB;
+
+                var coin1 = BABYLON.MeshBuilder.CreateCylinder("cylinder", { height: 0.1 });
+                coin1.position = new BABYLON.Vector3(5, 1, -4);
+                coin1.rotation.x = Math.PI / 2;
+
+                var coin2 = BABYLON.MeshBuilder.CreateCylinder("cylinder", { height: 0.1 });
+                coin2.position = new BABYLON.Vector3(4, 1, 7);
+                coin2.rotation.x = Math.PI / 2;
+
+                var coin3 = BABYLON.MeshBuilder.CreateCylinder("cylinder", { height: 0.1 });
+                coin3.position = new BABYLON.Vector3(7, 1, 4);
+                coin3.rotation.x = Math.PI / 2;
+
+                var coin4 = BABYLON.MeshBuilder.CreateCylinder("cylinder", { height: 0.1 });
+                coin4.position = new BABYLON.Vector3(5, 1, 2);
+                coin4.rotation.x = Math.PI / 2;
+
+                var coin5 = BABYLON.MeshBuilder.CreateCylinder("cylinder", { height: 0.1 });
+                coin5.position = new BABYLON.Vector3(2, 1, 5);
+                coin5.rotation.x = Math.PI / 2;
+
+                var coin6 = BABYLON.MeshBuilder.CreateCylinder("cylinder", { height: 0.1 });
+                coin6.position = new BABYLON.Vector3(-5, 1, -4);
+                coin6.rotation.x = Math.PI / 2;
+
+                var coin7 = BABYLON.MeshBuilder.CreateCylinder("cylinder", { height: 0.1 });
+                coin7.position = new BABYLON.Vector3(-7, 1, -4);
+                coin7.rotation.x = Math.PI / 2;
+
+                var coin8 = BABYLON.MeshBuilder.CreateCylinder("cylinder", { height: 0.1 });
+                coin8.position = new BABYLON.Vector3(-2, 1, 7);
+                coin8.rotation.x = Math.PI / 2;
+
+                var coin9 = BABYLON.MeshBuilder.CreateCylinder("cylinder", { height: 0.1 });
+                coin9.position = new BABYLON.Vector3(-5, 1, 8);
+                coin9.rotation.x = Math.PI / 2;
+
+                var coin10 = BABYLON.MeshBuilder.CreateCylinder("cylinder", { height: 0.1 });
+                coin10.position = new BABYLON.Vector3(5, 1, -8);
+                coin10.rotation.x = Math.PI / 2;
+
+                var mat2 = new BABYLON.StandardMaterial("mat2", scene);
+                mat2.diffuseTexture = new BABYLON.Texture("https://img.freepik.com/free-photo/gold-metal-brushed-background_38679-1020.jpg?size=626&ext=jpg", scene);
+
+                coin1.material = mat2;
+                coin2.material = mat2;
+                coin3.material = mat2;
+                coin4.material = mat2;
+                coin5.material = mat2;
+                coin6.material = mat2;
+                coin7.material = mat2;
+                coin8.material = mat2;
+                coin9.material = mat2;
+                coin10.material = mat2;
+
+                scene.onBeforeRenderObservable.add(() => {
+                    if (hitBoxBarril.intersectsMesh(hitBoxPlayer, true) && hit < 2) {
+                        if (hit == 0)
+                            hit++;
+                        else {
+                            result.meshes.forEach(a => {
+                                a.visibility = 0;
+                            });
+                            BABYLON.ParticleHelper.CreateAsync("explosion", scene).then((set) => {
+                                set.systems.forEach(s => {
+                                    s.disposeOnStop = true;
+                                });
+                                set.start();
+                            });
+                            explosionSound.play();
+                            hit++;
+                        }
+                    }
+                    if (hitBoxPlayer.intersectsMesh(coin1, true) && contMoeda == 0) {
+                        particula(coin1.position.x, coin1.position.z)
+                        coin1.visibility = 0;
+                        contMoeda++;
+                        coinSound.play();
+                        coin.position = coin2.position;
+                        qtd.text = "Coins: 1";
+                    }
+                    if (hitBoxPlayer.intersectsMesh(coin2, true) && contMoeda == 1) {
+                        contMoeda++;
+                        particula(coin2.position.x, coin2.position.z)
+                        coin2.visibility = 0;
+                        coinSound.play();
+                        coin.position = coin3.position;
+                        qtd.text = "Coins: 2";
+                    }
+                    if (hitBoxPlayer.intersectsMesh(coin3, true) && contMoeda == 2) {
+                        contMoeda++;
+                        particula(coin3.position.x, coin3.position.z)
+                        coin3.visibility = 0;
+                        coinSound.play();
+                        coin.position = coin4.position;
+                        qtd.text = "Coins: 3";
+                    }
+                    if (hitBoxPlayer.intersectsMesh(coin4, true) && contMoeda == 3) {
+                        contMoeda++;
+                        particula(coin4.position.x, coin4.position.z)
+                        coin4.visibility = 0;
+                        coinSound.play();
+                        coin.position = coin5.position;
+                        qtd.text = "Coins: 4";
+                    }
+                    if (hitBoxPlayer.intersectsMesh(coin5, true) && contMoeda == 4) {
+                        contMoeda++;
+                        particula(coin5.position.x, coin5.position.z)
+                        coin5.visibility = 0;
+                        coinSound.play();
+                        coin.position = coin6.position;
+                        qtd.text = "Coins: 5";
+                    }
+                    if (hitBoxPlayer.intersectsMesh(coin6, true) && contMoeda == 5) {
+                        contMoeda++;
+                        particula(coin6.position.x, coin6.position.z)
+                        coin6.visibility = 0;
+                        coinSound.play();
+                        coin.position = coin7.position;
+                        qtd.text = "Coins: 6";
+                    }
+                    if (hitBoxPlayer.intersectsMesh(coin7, true) && contMoeda == 6) {
+                        contMoeda++;
+                        particula(coin7.position.x, coin7.position.z)
+                        coin7.visibility = 0;
+                        coinSound.play();
+                        coin.position = coin8.position;
+                        qtd.text = "Coins: 7";
+                    }
+                    if (hitBoxPlayer.intersectsMesh(coin8, true) && contMoeda == 7) {
+                        contMoeda++;
+                        particula(coin8.position.x, coin8.position.z)
+                        coin8.visibility = 0;
+                        coinSound.play();
+                        coin.position = coin9.position;
+                        qtd.text = "Coins: 8";
+                    }
+                    if (hitBoxPlayer.intersectsMesh(coin9, true) && contMoeda == 8) {
+                        contMoeda++;
+                        particula(coin9.position.x, coin9.position.z)
+                        coin9.visibility = 0;
+                        coinSound.play();
+                        coin.position = coin10.position;
+                        qtd.text = "Coins: 9";
+                    }
+                    if (hitBoxPlayer.intersectsMesh(coin10, true) && contMoeda == 9) {
+                        contMoeda++;
+                        particula(coin10.position.x, coin10.position.z)
+                        coin10.visibility = 0;
+                        coinSound.play();
+                        coin.visibility = 0;
+                        qtd.text = "Coins: 10";
+                        const sambaAnim = scene.getAnimationGroupByName("Samba");
+                        sambaAnim.start(true, 1.0, sambaAnim.from, sambaAnim.to, false);
+
+                        endGame();
+                    }
+
+                });
+            })
+
+        }
+
+        function endGame() {
+            var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+            var button1 = BABYLON.GUI.Button.CreateSimpleButton("but1", "Restart Game");
+            button1.width = "150px"
+            button1.height = "40px";
+            button1.color = "white";
+            button1.cornerRadius = 20;
+            button1.background = "black";
+            button1.onPointerUpObservable.add(function () {
+                scene.dispose();
+                scene = createScene();
+            });
+            advancedTexture.addControl(button1);
+        }
+
+        function character(scene) {
+            BABYLON.SceneLoader.ImportMeshAsync("", "https://assets.babylonjs.com/meshes/", "HVGirl.glb", scene).then((result) => {
+                var hero = result.meshes[0];
+
+                var hitBox = result.meshes[7];
+                //Scale the model down        
+                hero.scaling.scaleInPlace(0.1);
+
+                //Lock camera on the character 
+                camera1.target = hero;
+
+                hero.position.x = 2;
+
+                //Hero character variables 
+                var heroSpeed = 0.03;
+                var heroSpeedBackwards = 0.01;
+                var heroRotationSpeed = 0.1;
+
+                var animating = true;
+
+                const walkAnim = scene.getAnimationGroupByName("Walking");
+                const walkBackAnim = scene.getAnimationGroupByName("WalkingBack");
+                const idleAnim = scene.getAnimationGroupByName("Idle");
+                const sambaAnim = scene.getAnimationGroupByName("Samba");
+
+                var map = BABYLON.MeshBuilder.CreateCylinder("cylinder", { diameter: 28, tesselation: 32 });
+                map.visibility = 0;
+
+
+                //Rendering loop (executed for everyframe)
+                scene.onBeforeRenderObservable.add(() => {
+
+                    if (!hero.intersectsMesh(map, true))
+                        hero.position = new BABYLON.Vector3(2, 0, 0);
+
+                    var keydown = false;
+                    //Manage the movements of the character (e.g. position, direction)
+                    if (inputMap["w"]) {
+                        hero.moveWithCollisions(hero.forward.scaleInPlace(heroSpeed));
+                        keydown = true;
+                    }
+                    if (inputMap["s"]) {
+                        hero.moveWithCollisions(hero.forward.scaleInPlace(-heroSpeedBackwards));
+                        keydown = true;
+                    }
+                    if (inputMap["a"]) {
+                        hero.rotate(BABYLON.Vector3.Up(), -heroRotationSpeed);
+                        keydown = true;
+                    }
+                    if (inputMap["d"]) {
+                        hero.rotate(BABYLON.Vector3.Up(), heroRotationSpeed);
+                        keydown = true;
+                    }
+                    if (inputMap["b"]) {
+                        keydown = true;
+                    }
+
+                    //Manage animations to be played  
+                    if (keydown) {
+                        if (!animating) {
+                            animating = true;
+                            if (inputMap["s"]) {
+                                //Walk backwards
+                                walkBackAnim.start(true, 1.0, walkBackAnim.from, walkBackAnim.to, false);
+                            }
+                            else if
+                                (inputMap["b"]) {
+                                //Samba!
+                                sambaAnim.start(true, 1.0, sambaAnim.from, sambaAnim.to, false);
+                            }
+                            else {
+                                //Walk
+                                walkAnim.start(true, 1.0, walkAnim.from, walkAnim.to, false);
+                            }
+                        }
+                    }
+                    else {
+
+                        if (animating) {
+                            //Default animation is idle when no key is down     
+                            idleAnim.start(true, 1.0, idleAnim.from, idleAnim.to, false);
+
+                            //Stop all animations besides Idle Anim when no key is down
+                            sambaAnim.stop();
+                            walkAnim.stop();
+                            walkBackAnim.stop();
+
+                            //Ensure animation are played only once per rendering loop
+                            animating = false;
+                        }
+                    }
+                });
+            });
+
+        }
+
+        function keyboardEvents(scene) {
+            inputMap = {};
+            scene.actionManager = new BABYLON.ActionManager(scene);
+            scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnKeyDownTrigger, function (evt) {
+                inputMap[evt.sourceEvent.key] = evt.sourceEvent.type == "keydown";
+            }));
+            scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnKeyUpTrigger, function (evt) {
+                inputMap[evt.sourceEvent.key] = evt.sourceEvent.type == "keydown";
+            }));
+        }
+
+        function gui() {
+            var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+            var instructions = new BABYLON.GUI.TextBlock();
+            instructions.text = "Move w/ WASD keys, B for Samba, look with the mouse";
+            instructions.color = "white";
+            instructions.fontSize = 16;
+            instructions.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT
+            instructions.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM
+            advancedTexture.addControl(instructions);
+
+            var name = new BABYLON.GUI.TextBlock();
+            name.text = "Matheus Cruz 180412 / Gabriel Gurris 180902";
+            name.color = "white";
+            name.fontSize = 16;
+            name.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+            name.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM
+            advancedTexture.addControl(name);
+        }
+
+        function coins(valor) {
+            var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+            qtd = new BABYLON.GUI.TextBlock();
+            qtd.text = "Coins: " + valor;
+            qtd.color = "white";
+            qtd.fontSize = 16;
+            qtd.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+            qtd.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER
+            advancedTexture.addControl(qtd);
+        }
+
+        function camera(scene) {
+            camera1 = new BABYLON.ArcRotateCamera("camera1", Math.PI / 2, Math.PI / 4, 10, new BABYLON.Vector3(0, 5, 15), scene);
+            scene.activeCamera = camera1;
+            scene.activeCamera.attachControl(canvas, true);
+            camera1.lowerRadiusLimit = 2;
+            camera1.upperRadiusLimit = 10;
+            camera1.wheelDeltaPercentage = 0.01;
+            return camera1;
+        }
+
+        function lights() {
+            var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
+            light.intensity = 0.6;
+            light.specular = BABYLON.Color3.Black();
+
+            var light2 = new BABYLON.DirectionalLight("dir01", new BABYLON.Vector3(0, -0.5, -1.0), scene);
+            light2.position = new BABYLON.Vector3(0, 5, 5);
+        }
+
+        function skybox() {
+            const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 150 }, scene);
+            skybox.position.y = 20;
+            const skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
+            skyboxMaterial.backFaceCulling = false;
+            skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/skybox4", scene);
+            skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+            skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+            skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+            skybox.material = skyboxMaterial;
+        }
+
+        function terrain() {
+            const largeGroundMat = new BABYLON.StandardMaterial("largeGroundMat");
+            largeGroundMat.diffuseTexture = new BABYLON.Texture("textures/skybox4_ny.jpg");
+
+            const largeGround = BABYLON.MeshBuilder.CreateGroundFromHeightMap("largeGround", "textures/map.png", { width: 150, height: 150, subdivisions: 20, minHeight: 0, maxHeight: 10 });
+            largeGround.material = largeGroundMat;
+            largeGround.position.y = -0.01;
+
+        }
+
+
+
+        initFunction = async function () {
+            var asyncEngineCreation = async function () {
+                try {
+                    return createDefaultEngine();
+                } catch (e) {
+                    console.log("the available createEngine function failed. Creating the default engine instead");
+                    return createDefaultEngine();
+                }
+            }
+
+            engine = await asyncEngineCreation();
+            if (!engine) throw 'engine should not be null.';
+            scene = createScene();
+        };
+        initFunction().then(() => {
+            sceneToRender = scene
+            engine.runRenderLoop(function () {
+                if (sceneToRender && sceneToRender.activeCamera) {
+                    sceneToRender.render();
+                }
+            });
+        });
+
+        // Resize
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+    </script>
+</body>
+
+</html>
